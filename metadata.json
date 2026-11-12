@@ -1,6 +1,0 @@
-{
-  "name": "SHARAFI AI",
-  "description": "Advanced offline bilingual (Arabic & English) voice-command assistant and Android system controller with local NLU, custom commands, and zero internet dependency.",
-  "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
-}
