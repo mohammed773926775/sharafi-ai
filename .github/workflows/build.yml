@@ -28,24 +28,20 @@ jobs:
         keytool -genkey -v -keystore debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
         sed -i '/com.google.gms.google-services/d' app/build.gradle.kts
 
-    - name: Force Samsung Engines (STT)
+    - name: Force Samsung Engines & Fix Arabic TTS
       run: |
         cd extracted_project
+        
+        # 1. إصلاح محرك الاستماع (STT) ليستخدم سامسونج
         grep -rl "com.google.android.googlequicksearchbox" app/src/main/java/ | xargs -r sed -i 's/com.google.android.googlequicksearchbox/com.samsung.android.svoice/g'
+        
+        # 2. إصلاح محرك النطق (TTS) ليستخدم محرك النظام الافتراضي (eSpeak) الذي يدعم العربية
+        # البحث عن أي إشارة لمحرك جوجل TTS واستبدالها بالمحرك الافتراضي
+        grep -rl "com.google.android.tts" app/src/main/java/ | xargs -r sed -i 's/com.google.android.tts//g'
+        
+        # 3. إضافة صلاحيات الاستعلام في المانيفست
         if ! grep -q "com.samsung.android.svoice" app/src/main/AndroidManifest.xml; then
-          sed -i '/<application/i \    <queries>\n        <package android:name="com.samsung.android.svoice" />\n    </queries>' app/src/main/AndroidManifest.xml
-        fi
-
-    - name: Add Offline TTS Library
-      run: |
-        cd extracted_project
-        # إضافة مكتبة النطق المحلي إلى Gradle
-        if ! grep -q "com.github.TeamNewPipe:NewPipeExtractor" app/build.gradle.kts; then
-          sed -i 's/dependencies {/dependencies {\n    implementation("com.github.alphacep:vosk-android:0.3.47")/' app/build.gradle.kts
-        fi
-        # إضافة مستودع JitPack
-        if ! grep -q "jitpack.io" settings.gradle.kts; then
-          sed -i 's/mavenCentral()/mavenCentral()\n        maven { url = uri("https:\/\/jitpack.io") }/' settings.gradle.kts
+          sed -i '/<application/i \    <queries>\n        <package android:name="com.samsung.android.svoice" />\n        <intent>\n            <action android:name="android.intent.action.TTS_SERVICE" />\n        </intent>\n    </queries>' app/src/main/AndroidManifest.xml
         fi
 
     - name: Build APK
@@ -58,5 +54,5 @@ jobs:
     - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
-        name: SHARAFI-AI-APK-V4
+        name: SHARAFI-AI-APK-Final
         path: extracted_project/app/build/outputs/apk/debug/*.apk
