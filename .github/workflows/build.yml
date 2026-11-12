@@ -16,7 +16,6 @@ jobs:
     - name: Extract ZIP
       run: |
         unzip *.zip -d extracted_project
-        echo "ZIP extracted successfully"
 
     - name: Set up JDK 17
       uses: actions/setup-java@v4
@@ -25,22 +24,21 @@ jobs:
         distribution: 'temurin'
         cache: gradle
 
-    - name: Grant execute permission for gradlew
+    - name: Generate debug keystore
       run: |
         cd extracted_project
-        # Find the gradlew file if it exists and make it executable
-        if [ -f "gradlew" ]; then chmod +x gradlew; fi
+        keytool -genkey -v -keystore debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
+
+    - name: Disable Google Services (Fix)
+      run: |
+        cd extracted_project
+        sed -i '/com.google.gms.google-services/d' app/build.gradle.kts
 
     - name: Build with Gradle
       run: |
         cd extracted_project
-        # Build the debug APK
-        if [ -f "gradlew" ]; then
-          ./gradlew assembleDebug
-        else
-          gradle wrapper
-          ./gradlew assembleDebug
-        fi
+        if [ -f "gradlew" ]; then chmod +x gradlew; fi
+        ./gradlew assembleDebug
 
     - name: Upload APK
       uses: actions/upload-artifact@v4
