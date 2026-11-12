@@ -1,0 +1,43 @@
+name: Build APK
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Extract ZIP
+      run: |
+        unzip *.zip -d extracted_project
+        cp gradlew extracted_project/gradlew
+        chmod +x extracted_project/gradlew
+
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+
+    - name: Fix Keystore and Firebase
+      run: |
+        cd extracted_project
+        keytool -genkey -v -keystore debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
+        sed -i '/com.google.gms.google-services/d' app/build.gradle.kts
+        chmod +x gradlew
+
+    - name: Build APK
+      run: |
+        cd extracted_project
+        ./gradlew assembleDebug
+
+    - name: Upload APK
+      uses: actions/upload-artifact@v4
+      with:
+        name: SHARAFI-AI-APK
+        path: extracted_project/app/build/outputs/apk/debug/*.apk
