@@ -28,15 +28,16 @@ jobs:
         keytool -genkey -v -keystore debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
         sed -i '/com.google.gms.google-services/d' app/build.gradle.kts
 
-    - name: Modify STT Engine (Force Samsung)
+    - name: Fix Speech Recognition Provider (Force Samsung)
       run: |
         cd extracted_project
-        # البحث عن ملف المحرك واستبدال محرك جوجل بمحرك سامسونج
-        if [ -f "app/src/main/java/com/sharafi/offlineassistant/speech/OfflineSpeechEngine.kt" ]; then
-          sed -i 's/com.google.android.googlequicksearchbox/com.samsung.android.svoice/g' app/src/main/java/com/sharafi/offlineassistant/speech/OfflineSpeechEngine.kt
-        fi
-        # إذا كان المسار مختلفاً، سنبحث في كل الملفات لضمان التعديل
+        # استبدال اسم حزمة جوجل باسم حزمة سامسونج في كود المحرك
         grep -rl "com.google.android.googlequicksearchbox" app/src/main/java/ | xargs -r sed -i 's/com.google.android.googlequicksearchbox/com.samsung.android.svoice/g'
+        
+        # إضافة صلاحية الاستعلام عن التطبيقات في ملف المانيفست (مطلوب في أندرويد 11+)
+        if ! grep -q "com.samsung.android.svoice" app/src/main/AndroidManifest.xml; then
+          sed -i '/<application/i \    <queries>\n        <package android:name="com.samsung.android.svoice" />\n    </queries>' app/src/main/AndroidManifest.xml
+        fi
 
     - name: Build APK
       run: |
@@ -48,5 +49,5 @@ jobs:
     - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
-        name: SHARAFI-AI-APK-Samsung
+        name: SHARAFI-AI-APK-Samsung-V2
         path: extracted_project/app/build/outputs/apk/debug/*.apk
